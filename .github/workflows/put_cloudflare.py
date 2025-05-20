@@ -12,7 +12,6 @@ class CloudflareKVClient:
         self.namespace_id = os.getenv("CF_NAMESPACE_ID", "CF_NAMESPACE_ID Secret Not Found")
         self.api_token = os.getenv("CF_API_KEY", "CF_API_KEY Secret Not Found")
         self.email = os.getenv("CF_AUTH_EMAIL", "CF_AUTH_EMAIL Secret Not Found")
-        self.v_file =os.environ.get('GITHUB_WORKSPACE', os.getcwd())+"/BestCF/bestcfv4.txt"
         self.base_url = f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/storage/kv/namespaces/{self.namespace_id}"
         self._validate_credentials()
 
@@ -21,16 +20,6 @@ class CloudflareKVClient:
         print(self.account_id, self.namespace_id, self.api_token)
         if not all([self.account_id, self.namespace_id, self.api_token]):
             raise ValueError("❌ 缺少必要的环境变量: CF_ACCOUNT_ID, CF_NAMESPACE_ID 或 CF_API_KEY")
-
-    def _load_large_ips(self, v_file: str) -> str:
-        """内存友好的实现"""
-        seen = set()
-        with open(v_file, 'r', encoding='utf-8') as f:
-            for line in f:
-                line = line.strip()
-                if line:
-                    seen.add(line)
-        return '\n'.join(seen)
 
     def _make_request(self, method: str, endpoint: str, **kwargs) -> Dict:
         """发送API请求的通用方法"""
@@ -109,10 +98,9 @@ if __name__ == "__main__":
         client = CloudflareKVClient()
 
         # 加载IP文件
-        ip_file = os.getenv("IP_FILE_PATH")
-        if not ip_file:
-            raise ValueError("未设置环境变量 IP_FILE_PATH")
-        ip_data = client._load_large_ips(ip_file)
+        ip_file = os.environ.get('GITHUB_WORKSPACE', os.getcwd())+"/BestCF/bestcfv4.txt"
+
+        ip_data = load_large_ips(ip_file)
 
         # 单键更新
         print("正在更新单键...")

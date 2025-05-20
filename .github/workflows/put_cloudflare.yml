@@ -31,7 +31,6 @@ jobs:
           CF_NAMESPACE_ID: ${{ secrets.CF_NAMESPACE_ID }}
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
-          IP_FILE_PATH: ./BestCF/bestcfv4.txt # 替换为实际文件路径
 
       - name: Run Script to Update KV
         run: |
