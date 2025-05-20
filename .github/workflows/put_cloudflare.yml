@@ -41,6 +41,7 @@ jobs:
           CF_NAMESPACE_ID: ${{ secrets.CF_NAMESPACE_ID }}
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           CF_AUTH_EMAIL: ${{ secrets.CF_AUTH_EMAIL }}
+          CF_KEY_NAME: ${{ secrets.CF_KEY_NAME }}
         run: |
           echo "开始更新 Cloudflare KV..."
           python .github/workflows/put_cloudflare.py

@@ -105,7 +105,7 @@ if __name__ == "__main__":
         # 单键更新
         print("正在更新单键...")
         single_result = client.update_single_key(
-            key="ip_list",
+            key=os.getenv("CF_KEY_NAME", "CF_AUTH_EMAIL Secret Not Found"),
             value=ip_data,
             expiration_ttl=None  # 永不过期
         )
