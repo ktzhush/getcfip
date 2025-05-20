@@ -12,7 +12,7 @@ class CloudflareKVClient:
         self.namespace_id = os.getenv("CF_NAMESPACE_ID")
         self.api_token = os.getenv("CF_API_KEY")
         self.email = os.getenv("CF_AUTH_EMAIL")
-        self.v_file = os.getenv("IP_FILE_PATH")
+        self.v_file ="./BestCF/bestcfv4.txt"
         self.base_url = f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/storage/kv/namespaces/{self.namespace_id}"
         self._validate_credentials()
 
