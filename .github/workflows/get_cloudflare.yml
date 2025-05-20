@@ -32,6 +32,8 @@ jobs:
               echo "ℹ️ 目录 $DIR 已存在"
           fi
 
+          rm -f "$FILE_PATH"
+
           # 下载文件
           curl -L https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt -o "$FILE_PATH"
           if [ $? -ne 0 ]; then
