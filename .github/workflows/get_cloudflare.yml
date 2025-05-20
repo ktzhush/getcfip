@@ -31,7 +31,7 @@ jobs:
           else
               echo "ℹ️ 目录 $DIR 已存在"
           fi
-
+          echo "rm -f $FILE_PATH"
           rm -f "$FILE_PATH"
 
           # 下载文件
