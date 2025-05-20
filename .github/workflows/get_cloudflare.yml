@@ -54,7 +54,7 @@ jobs:
           else
             git commit -m ":arrow_up: Update bestcfv4.txt"
             echo "✅ 文件已更新并提交"
-            git push
+            git push origin ${{ github.ref }}
           fi
 
       # 第四步：推送更改到远程仓库
