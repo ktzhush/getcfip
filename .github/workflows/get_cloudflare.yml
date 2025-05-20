@@ -6,14 +6,13 @@ on:
       - main
     paths:
       - "BestCF/bestcfv4.txt" # 修改1：路径分隔符标准化
-  # schedule:
-  # - cron: "*/30 * * * *"  # 每30分钟运行一次
+  schedule:
+    - cron: "*/30 * * * *" # 每30分钟运行一次（可选）
   workflow_dispatch: # 支持手动触发
 
 jobs:
   download-file:
     runs-on: ubuntu-latest
-
     steps:
       # 第一步：检出代码
       - name: Checkout Code
@@ -22,13 +21,24 @@ jobs:
       # 第二步：下载文件
       - name: Download bestcfv4 File
         run: |
-          mkdir -p BestCF
-          curl -L https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt -o BestCF/bestcfv4.txt
-          if [ -f "BestCF/bestcfv4.txt" ]; then
-            echo "File downloaded successfully."
+          DIR="BestCF"
+          FILE_PATH="$DIR/bestcfv4.txt"
+
+          # 检查并创建目录
+          if [ ! -d "$DIR" ]; then
+              mkdir -p "$DIR"
+              echo "✅ 目录 $DIR 已创建"
           else
-            echo "Failed to download file." >&2
+              echo "ℹ️ 目录 $DIR 已存在"
+          fi
+
+          # 下载文件
+          curl -L https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt -o "$FILE_PATH"
+          if [ $? -ne 0 ]; then
+            echo "❌ Failed to download file." >&2
             exit 1
+          else
+            echo "✅ File downloaded successfully."
           fi
 
       # 第三步：提交更改（如果有）
@@ -37,10 +47,13 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
           git add .
+
+          # 检查是否有更改
           if ! git diff-index --quiet HEAD; then
             git commit -m ":arrow_up: Update bestcfv4"
+            echo "✅ Changes committed."
           else
-            echo "No changes to commit."
+            echo "ℹ️ No changes to commit."
           fi
 
       # 第四步：推送更改
@@ -48,4 +61,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GT_TOKENS }}
         run: |
-          git push origin ${{ github.ref }}
+          # 推送更改到远程仓库
+          if git diff-index --quiet HEAD; then
+            echo "ℹ️ No changes to push."
+          else
+            git push origin ${{ github.ref }}
+            if [ $? -eq 0 ]; then
+              echo "✅ Changes pushed successfully."
+            else
+              echo "❌ Failed to push changes." >&2
+              exit 1
+            fi
+          fi
