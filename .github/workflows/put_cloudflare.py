@@ -8,10 +8,10 @@ from typing import List, Dict, Union, Optional
 class CloudflareKVClient:
     def __init__(self):
         load_dotenv()
-        self.account_id = os.getenv("CF_ACCOUNT_ID")
-        self.namespace_id = os.getenv("CF_NAMESPACE_ID")
-        self.api_token = os.getenv("CF_API_KEY")
-        self.email = os.getenv("CF_AUTH_EMAIL")
+        self.account_id = os.getenv("CF_ACCOUNT_ID", "CF_ACCOUNT_ID Secret Not Found")
+        self.namespace_id = os.getenv("CF_NAMESPACE_ID", "CF_NAMESPACE_ID Secret Not Found")
+        self.api_token = os.getenv("CF_API_KEY", "CF_API_KEY Secret Not Found")
+        self.email = os.getenv("CF_AUTH_EMAIL", "CF_AUTH_EMAIL Secret Not Found")
         self.v_file =os.environ.get('GITHUB_WORKSPACE', os.getcwd())+"/BestCF/bestcfv4.txt"
         self.base_url = f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/storage/kv/namespaces/{self.namespace_id}"
         self._validate_credentials()
