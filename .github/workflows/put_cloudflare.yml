@@ -4,12 +4,14 @@ on:
   # 手动触发
   workflow_dispatch:
 
-  # 推送触发（仅限 main 分支）
+  # 推送触发（仅限 main 分支且 BestCF/bestcfv4.txt 文件更新时）
   push:
     branches:
       - main
+    paths:
+      - "BestCF/bestcfv4.txt" # 仅在该文件更新时触发
 
-  # 定时任务（每天凌晨 2 点执行）
+  # 定时任务（每天凌晨 2 点执行，无论文件是否更新）
   schedule:
     - cron: "0 2 * * *"
 
