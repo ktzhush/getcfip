@@ -8,6 +8,8 @@ on:
 
 jobs:
   download-file:
+    env:
+      GITHUB_TOKEN: ${{ secrets.GT_TOKEN }}
     runs-on: ubuntu-latest
 
     steps:
@@ -52,22 +54,21 @@ jobs:
           else
             git commit -m ":arrow_up: Update bestcfv4.txt"
             echo "✅ 文件已更新并提交"
+            git push
           fi
 
       # 第四步：推送更改到远程仓库
-      - name: Push Changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GT_TOKEN }}
-        run: |
-          # 推送更改到远程仓库
-          if git diff-index --quiet HEAD; then
-            echo "ℹ️ 没有更改需要推送"
-          else
-            git push origin ${{ github.ref }}
-            if [ $? -eq 0 ]; then
-              echo "✅ 更改已成功推送到远程仓库"
-            else
-              echo "❌ 推送失败，请检查权限或网络连接"
-              exit 1
-            fi
-          fi
+      #- name: Push Changes
+      #  run: |
+      #    # 推送更改到远程仓库
+      #    if git diff-index --quiet HEAD; then
+      #      echo "ℹ️ 没有更改需要推送"
+      #    else
+      #      git push origin ${{ github.ref }}
+      #      if [ $? -eq 0 ]; then
+      #        echo "✅ 更改已成功推送到远程仓库"
+      #      else
+      #        echo "❌ 推送失败，请检查权限或网络连接"
+      #        exit 1
+      #      fi
+      #    fi
