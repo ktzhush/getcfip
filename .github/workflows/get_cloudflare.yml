@@ -1,0 +1,51 @@
+name: Download bestcfv4 File
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "BestCF/bestcfv4.txt" # 修改1：路径分隔符标准化
+  # schedule:
+  # - cron: "*/30 * * * *"  # 每30分钟运行一次
+  workflow_dispatch: # 支持手动触发
+
+jobs:
+  download-file:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 第一步：检出代码
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      # 第二步：下载文件
+      - name: Download bestcfv4 File
+        run: |
+          mkdir -p BestCF
+          curl -L https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt -o BestCF/bestcfv4.txt
+          if [ -f "BestCF/bestcfv4.txt" ]; then
+            echo "File downloaded successfully."
+          else
+            echo "Failed to download file." >&2
+            exit 1
+          fi
+
+      # 第三步：提交更改（如果有）
+      - name: Commit Changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add .
+          if ! git diff-index --quiet HEAD; then
+            git commit -m ":arrow_up: Update bestcfv4"
+          else
+            echo "No changes to commit."
+          fi
+
+      # 第四步：推送更改
+      - name: Push Changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GT_TOKENS }}
+        run: |
+          git push origin ${{ github.ref }}
