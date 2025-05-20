@@ -18,6 +18,7 @@ class CloudflareKVClient:
 
     def _validate_credentials(self):
         """验证必要凭证"""
+        print(self.account_id, self.namespace_id, self.api_token)
         if not all([self.account_id, self.namespace_id, self.api_token]):
             raise ValueError("❌ 缺少必要的环境变量: CF_ACCOUNT_ID, CF_NAMESPACE_ID 或 CF_API_KEY")
 
