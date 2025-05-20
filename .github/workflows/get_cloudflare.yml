@@ -21,7 +21,7 @@ jobs:
       # 第二步：下载文件
       - name: Download bestcfv4 File
         run: |
-          DIR="BestCF"
+          DIR="${{ github.workspace }}/BestCF"
           FILE_PATH="$DIR/bestcfv4.txt"
 
           # 检查并创建目录
