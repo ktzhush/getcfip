@@ -9,7 +9,7 @@ on:
     branches:
       - main
     paths:
-      - "./ip.txt" # 仅在该文件更新时触发
+      - "ip.txt" # 仅在该文件更新时触发
 
   # 定时任务（每天凌晨 6 点执行，无论文件是否更新）
   schedule:
