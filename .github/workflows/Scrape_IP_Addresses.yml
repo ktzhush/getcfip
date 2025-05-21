@@ -3,7 +3,7 @@ name: Smart IP Updater
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 20 * * *"  # 北京时间下午8:00
+    - cron: "0 * * * *"  # 北京时间下午8:00
 
 jobs:
   update-ips:
