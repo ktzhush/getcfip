@@ -98,7 +98,7 @@ if __name__ == "__main__":
         client = CloudflareKVClient()
 
         # 加载IP文件
-        ip_file = os.environ.get('GITHUB_WORKSPACE', os.getcwd())+"/BestCF/bestcfv4.txt"
+        ip_file = os.environ.get('GITHUB_WORKSPACE', os.getcwd())+"/ip.txt"
 
         ip_data = load_large_ips(ip_file)
 
