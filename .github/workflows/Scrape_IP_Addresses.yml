@@ -22,4 +22,4 @@ jobs:
       with:
         message: "Update IP addresses"
         file: ip.txt
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        github_token: ${{ secrets.GT_TOKENS }}
