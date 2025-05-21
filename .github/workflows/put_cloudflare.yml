@@ -9,11 +9,11 @@ on:
     branches:
       - main
     paths:
-      - "BestCF/bestcfv4.txt" # 仅在该文件更新时触发
+      - "./ip.txt" # 仅在该文件更新时触发
 
   # 定时任务（每天凌晨 2 点执行，无论文件是否更新）
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "0/10 * * * *"
 
 jobs:
   update-kv:
