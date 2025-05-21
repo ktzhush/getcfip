@@ -1,0 +1,25 @@
+name: Scrape IP Addresses
+
+on:
+  workflow_dispatch: # 支持手动触发
+  schedule:
+    - cron: "0 * * * *"  # 每小时执行一次
+
+jobs:
+  scrape-ip:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Extract IP addresses
+      run: |
+        curl -s https://www.wetest.vip/page/cloudflare/total_v4.html | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip.txt
+
+    - name: Commit and push changes
+      uses: stefanzweig/commit@v1
+      with:
+        message: "Update IP addresses"
+        file: ip.txt
+        github_token: ${{ secrets.GITHUB_TOKEN }}
