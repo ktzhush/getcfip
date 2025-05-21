@@ -1,57 +1,78 @@
-name: Daily IP Scraper
+name: Smart IP Updater
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 18 * * *"  # 北京时间6:00 (UTC+8)
+    - cron: "0 20 * * *"  # 北京时间下午8:00
 
 jobs:
-  scrape-ips:
+  update-ips:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout with full history
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # 获取完整提交历史
+        fetch-depth: 0  # 必须获取完整提交历史
 
-    - name: Extract and merge IPs
+    - name: Cache previous IPs
+      id: cache-ips
       run: |
-        # 获取旧IP列表
         if [ -f ip.txt ]; then
-          cp ip.txt old_ip.txt
+          echo "Caching existing IPs..."
+          md5sum ip.txt | cut -d' ' -f1 > ip.md5
+          echo "prev_md5=$(cat ip.md5)" >> $GITHUB_OUTPUT
         else
-          touch old_ip.txt
+          echo "No existing ip.txt found"
+          echo "prev_md5=none" >> $GITHUB_OUTPUT
         fi
 
-        # 提取新IP
-        curl -s https://www.wetest.vip/page/cloudflare/total_v4.html | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip1.txt
-        curl -s https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip2.txt
-        cat ip1.txt ip2.txt | sort -u > new_ip.txt
-
-        # 比较差异
-        if cmp -s old_ip.txt new_ip.txt; then
-          echo "IP列表无变化，跳过提交"
-          echo "SKIP_COMMIT=true" >> $GITHUB_ENV
-        else
-          echo "发现新IP，准备提交"
-          mv new_ip.txt ip.txt
-          echo "SKIP_COMMIT=false" >> $GITHUB_ENV
-        fi
-
-        # 显示统计信息
-        echo "旧IP数量: $(wc -l < old_ip.txt)"
-        echo "新IP数量: $(wc -l < ip.txt)"
-        
-    - name: Cleanup
-      run: rm -f ip1.txt ip2.txt old_ip.txt new_ip.txt
-
-    - name: Commit changes
-      if: env.SKIP_COMMIT == 'false'
+    - name: Fetch new IPs
       run: |
+        # 并行获取两个数据源
+        curl -s https://www.wetest.vip/page/cloudflare/total_v4.html | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip1.txt &
+        curl -s https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip2.txt &
+        wait  # 等待所有并行任务完成
+
+        # 合并去重并生成新MD5
+        cat ip1.txt ip2.txt | sort -u > new_ip.txt
+        md5sum new_ip.txt | cut -d' ' -f1 > new.md5
+
+        # 输出统计信息
+        echo "Previous MD5: $(cat ip.md5 || echo 'N/A')"
+        echo "New MD5: $(cat new.md5)"
+        echo "IP count: $(wc -l < new_ip.txt)"
+
+    - name: Compare changes
+      id: compare
+      run: |
+        if [ "$(cat ip.md5)" == "$(cat new.md5)" ]; then
+          echo "No changes detected"
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        else
+          echo "Changes detected!"
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Cleanup temp files
+      if: always()  # 无论上一步是否失败都执行清理
+      run: |
+        echo "Cleaning up temporary files..."
+        rm -f ip1.txt ip2.txt ip.md5 new.md5
+
+    - name: Update repository
+      if: steps.compare.outputs.has_changes == 'true'
+      run: |
+        # 格式化IP文件（每行一个IP）
+        sort -u new_ip.txt | awk 'NF' > ip.txt
+        
+        # 最后清理new_ip.txt（仅在提交成功后）
+        rm -f new_ip.txt
+        
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add ip.txt
-        git commit -m "IP更新 [$(date +'%Y-%m-%d %H:%M')]"
+        git commit -m "IPs updated: $(date +'%Y-%m-%d %H:%M') 
+        [$(cat ip.md5) → $(cat new.md5)]"
         git push https://x-access-token:${{ secrets.GT_TOKEN }}@github.com/${{ github.repository }}.git
-
+        
