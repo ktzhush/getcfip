@@ -1,8 +1,14 @@
 name: Scrape IP Addresses
 
 on:
+  workflow_dispatch:    # 允许手动触发
+    inputs:
+      reason:
+        description: '触发原因（可选）'
+        required: false
+        default: '手动更新IP'
   schedule:
-    - cron: "0 * * * *"  # 每小时执行一次
+    - cron: "0 * * * *"  # 每小时执行一次（保留定时触发）
 
 jobs:
   scrape-ip:
@@ -12,7 +18,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        persist-credentials: false  # 重要：必须关闭凭据持久化
+        persist-credentials: false
 
     - name: Extract IP addresses
       run: |
@@ -23,5 +29,5 @@ jobs:
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add ip.txt
-        git commit -m "Update IP addresses"
+        git commit -m "Update IP: ${{ github.event.inputs.reason || 'Auto' }}"
         git push https://x-access-token:${{ secrets.GT_TOKEN }}@github.com/${{ github.repository }}.git
