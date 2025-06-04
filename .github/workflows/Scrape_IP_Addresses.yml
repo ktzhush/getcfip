@@ -3,7 +3,7 @@ name: Smart IP Updater
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"  # 北京时间下午8:00
+    - cron: "0 */1 * * *"  # 北京时间下午8:00
 env:
   TZ: "Asia/Shanghai"  # 确保系统使用北京时间
 
