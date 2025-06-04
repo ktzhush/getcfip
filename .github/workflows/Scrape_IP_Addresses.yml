@@ -3,7 +3,7 @@ name: Smart IP Updater
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 */1 * * *"  # 北京时间下午8:00
+    - cron: "0 * * * *"  # 北京时间下午8:00
 env:
   TZ: "Asia/Shanghai"  # 确保系统使用北京时间
 
@@ -34,10 +34,11 @@ jobs:
         # 并行获取两个数据源
         curl -s https://www.wetest.vip/page/cloudflare/total_v4.html | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip1.txt &
         curl -s https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip2.txt &
+        curl -s https://www.wetest.vip/page/cloudfront/total_v4.html  | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip3.txt &
         wait  # 等待所有并行任务完成
 
         # 合并去重并生成新MD5
-        cat ip1.txt ip2.txt | sort -u > new_ip.txt
+        cat ip1.txt ip2.txt ip3.txt| sort -u > new_ip.txt
         md5sum new_ip.txt | cut -d' ' -f1 > new.md5
 
         # 输出统计信息
