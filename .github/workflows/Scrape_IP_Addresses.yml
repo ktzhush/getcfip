@@ -3,9 +3,14 @@ name: Smart IP Updater
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 * * * *"  # 北京时间下午8:00
+    - cron: "0 * * * *"  # UTC 每小时整点 = 北京时间每小时整点运行一次
+
 env:
   TZ: "Asia/Shanghai"  # 确保系统使用北京时间
+
+concurrency:
+  group: update-ips
+  cancel-in-progress: true  # 上一次未结束时取消旧任务，防止并发 push 冲突
 
 jobs:
   update-ips:
@@ -31,25 +36,36 @@ jobs:
 
     - name: Fetch new IPs
       run: |
-        # 并行获取两个数据源
-        curl -s https://www.wetest.vip/page/cloudflare/total_v4.html | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip1.txt &
-        curl -s https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip2.txt &
-        curl -s https://www.wetest.vip/page/cloudfront/total_v4.html  | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip3.txt &
+        # 并行获取三个数据源（超时参数防止某个源挂起拖垮整个任务）
+        curl -sS -L --connect-timeout 15 --max-time 60 --retry 2 https://www.wetest.vip/page/cloudflare/total_v4.html | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip1.txt &
+        curl -sS -L --connect-timeout 15 --max-time 60 --retry 2 https://raw.githubusercontent.com/ymyuuu/IPDB/main/BestCF/bestcfv4.txt | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip2.txt &
+        curl -sS -L --connect-timeout 15 --max-time 60 --retry 2 https://www.wetest.vip/page/cloudfront/total_v4.html | grep -oE "\b([0-9]{1,3}\.){3}[0-9]{1,3}\b" > ip3.txt &
         wait  # 等待所有并行任务完成
 
         # 合并去重并生成新MD5
-        cat ip1.txt ip2.txt ip3.txt| sort -u > new_ip.txt
+        cat ip1.txt ip2.txt ip3.txt | sort -u > new_ip.txt
         md5sum new_ip.txt | cut -d' ' -f1 > new.md5
 
         # 输出统计信息
-        echo "Previous MD5: $(cat ip.md5 || echo 'N/A')"
+        echo "Previous MD5: ${{ steps.cache-ips.outputs.prev_md5 }}"
         echo "New MD5: $(cat new.md5)"
         echo "IP count: $(wc -l < new_ip.txt)"
+
+        # 空结果保护：数据源不可用时中止，避免用空文件覆盖 ip.txt
+        COUNT=$(wc -l < new_ip.txt)
+        if [ "${COUNT}" -lt 5 ]; then
+          echo "::error::仅获取到 ${COUNT} 条 IP，疑似数据源全部不可用，本次中止"
+          exit 1
+        fi
 
     - name: Compare changes
       id: compare
       run: |
-        if [ "$(cat ip.md5)" == "$(cat new.md5)" ]; then
+        PREV=$(cat ip.md5 2>/dev/null || echo "none")
+        NEW=$(cat new.md5 2>/dev/null || echo "none")
+        echo "prev_md5=${PREV}" >> $GITHUB_OUTPUT
+        echo "new_md5=${NEW}" >> $GITHUB_OUTPUT
+        if [ "${PREV}" == "${NEW}" ]; then
           echo "No changes detected"
           echo "has_changes=false" >> $GITHUB_OUTPUT
         else
@@ -57,25 +73,36 @@ jobs:
           echo "has_changes=true" >> $GITHUB_OUTPUT
         fi
 
-    - name: Cleanup temp files
-      if: always()  # 无论上一步是否失败都执行清理
-      run: |
-        echo "Cleaning up temporary files..."
-        rm -f ip1.txt ip2.txt ip.md5 new.md5
-
     - name: Update repository
       if: steps.compare.outputs.has_changes == 'true'
       run: |
         # 格式化IP文件（每行一个IP）
         sort -u new_ip.txt | awk 'NF' > ip.txt
-        
-        # 最后清理new_ip.txt（仅在提交成功后）
-        rm -f new_ip.txt
-        
+
+        # 清理临时文件
+        rm -f new_ip.txt ip1.txt ip2.txt ip3.txt
+
         git config --global user.name "GitHub Actions"
         git config --global user.email "actions@github.com"
         git add ip.txt
-        git commit -m "IPs updated: $(date +'%Y-%m-%d %H:%M') 
-        [$(cat ip.md5) → $(cat new.md5)]"
-        git push https://x-access-token:${{ secrets.GT_TOKEN }}@github.com/${{ github.repository }}.git
-       
+        git commit -m "IPs updated: $(date +'%Y-%m-%d %H:%M') [${{ steps.compare.outputs.prev_md5 }} → ${{ steps.compare.outputs.new_md5 }}]"
+
+        # push 卡死 30 秒内快速失败 + 失败自动重试，防止偶发 504 导致任务失败
+        git config http.lowSpeedLimit 1000
+        git config http.lowSpeedTime 30
+        for i in 1 2 3 4 5; do
+          if git push https://x-access-token:${{ secrets.GT_TOKEN }}@github.com/${{ github.repository }}.git; then
+            echo "Push succeeded (attempt ${i})"
+            exit 0
+          fi
+          echo "Push failed (attempt ${i}), retrying in 30s..."
+          sleep 30
+        done
+        echo "::error::git push 连续 5 次失败"
+        exit 1
+
+    - name: Cleanup temp files
+      if: always()  # 移到最后执行，md5 已通过 outputs 传递，不再依赖文件
+      run: |
+        echo "Cleaning up temporary files..."
+        rm -f ip1.txt ip2.txt ip3.txt new_ip.txt ip.md5 new.md5
